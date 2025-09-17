@@ -3,7 +3,7 @@
 #include <cstdlib>
 #include <glm/gtx/normal.hpp>
 
-// https://en.wikipedia.org/wiki/STL_(file_format)
+// https://en.wikipedia.org/wiki/Wavefront_.obj_file
 
 void SaveWavefrontOBJ(
     const std::string &path,
@@ -53,11 +53,11 @@ void SaveWavefrontOBJ(
             indexA + 1,   // Vertex position
             indexA + 1,   // Vertex UV (aligned with positions)
             indexTri + 1, // Vertex normal (aligned with triangle)
-            // Triangle A
+            // Triangle B
             indexB + 1,   // Vertex position
             indexB + 1,   // Vertex UV (aligned with positions)
             indexTri + 1, // Vertex normal (aligned with triangle)
-            // Triangle A
+            // Triangle C
             indexC + 1,   // Vertex position
             indexC + 1,   // Vertex UV (aligned with positions)
             indexTri + 1  // Vertex normal (aligned with triangle)

@@ -14,6 +14,9 @@ by Garland and Heckbert. The meshes produced by `hmm` satisfy the Delaunay
 condition and can satisfy a specified maximal error or maximal number of
 triangles or vertices. It's also very fast.
 
+This fork contains a few useful modifications, such as Wavefront .obj format and texture
+UV generation. Look through the commit logs for more details. <3
+
 ![Example](https://i.imgur.com/xLGcmWS.png)
 
 ### Dependencies
@@ -26,10 +29,18 @@ triangles or vertices. It's also very fast.
 ```bash
 brew install glm # on macOS
 sudo apt-get install libglm-dev # on Ubuntu / Debian
+sudo pacman -S glm # on Arch Linux
 
 git clone https://github.com/fogleman/hmm.git
 cd hmm
-make
+
+# Choose one depending on what you need
+# (-j8 specifies parallel build for 8 cores)
+make -j8 debug
+make -j8 release
+
+# By default installs to /usr/local, change DESTDIR and INSTALL_PREFIX in
+# the Makefile to adjust
 make install
 ```
 
@@ -37,10 +48,11 @@ make install
 
 ```
 heightmap meshing utility
-usage: hmm --zscale=float [options] ... infile outfile.stl
+usage: ./hmm --xsize=float --ysize=float --zscale=float [options] ... infile outfile.[stl/obj]
 options:
+  -x, --xsize            requested size of the mesh in the X axis (float)
+  -y, --ysize            requested size of the mesh in the Y axis (float)
   -z, --zscale           z scale relative to x & y (float)
-  -x, --zexagg           z exaggeration (float [=1])
   -e, --error            maximum triangulation error (float [=0.001])
   -t, --triangles        maximum number of triangles (int [=0])
   -p, --points           maximum number of vertices (int [=0])
@@ -60,19 +72,19 @@ options:
 ```
 
 `hmm` supports a variety of file formats like PNG, JPG, etc. for the input
-heightmap. The output is always a binary STL file. The only other required
-parameter is `-z`, which specifies how much to scale the Z axis in the output
-mesh.
+heightmap. The output can be either STL or Wavefront .obj depending on file
+extension. Parameters `-x`, `-y` and `-z` are required to specify the generated
+mesh size. Note, that the vertical axis is mapped to +Y.
 
 ```bash
-$ hmm input.png output.stl -z ZSCALE
+$ hmm input.png output.stl -x 128 -y 128 -z 64
 ```
 
 You can also provide a maximal allowed error, number of triangles, or number of
 vertices. (If multiple are specified, the first one reached is used.)
 
 ```bash
-$ hmm input.png output.stl -z 100 -e 0.001 -t 1000000
+$ hmm input.png output.stl -x 128 -y 128 -z 100 -e 0.001 -t 1000000
 ```
 
 ### Visual Guide
@@ -81,21 +93,8 @@ Click on the image below to see examples of various command line arguments. You
 can try these examples yourself with this heightmap: [gale.png](https://www.michaelfogleman.com/static/hmm/guide/gale.png).
 
 ![Visual Guide](https://www.michaelfogleman.com/static/hmm/guide/all.png)
+*(Note, the image uses outdated -z and -x command line parameters from upstream)*
 
-### Z Scale
-
-The required `-z` parameter defines the distance between a fully black pixel
-and a fully white pixel in the vertical Z axis, with units equal to one pixel
-width or height. For example, if each pixel in the heightmap represented a 1x1
-meter square area, and the vertical range of the heightmap was 100 meters, then
-`-z 100` should be used.
-
-### Z Exaggeration
-
-The `-x` parameter is simply an extra multiplier on top of the provided Z
-scale. It is provided as a convenience so you don't have to do multiplication
-in your head just to exaggerate by, e.g. 2x, since Z scales are often derived
-from real world data and can have strange values like 142.2378.
 
 ### Max Error
 

@@ -111,6 +111,12 @@ RECENT REVISION HISTORY:
 #ifndef STBI_INCLUDE_STB_IMAGE_H
 #define STBI_INCLUDE_STB_IMAGE_H
 
+// ===== (nat) Muting some warnings 
+#pragma GCC diagnostic push
+// src/stb_image.h:5114:18: warning: comparison of unsigned expression in ‘>= 0’ is always true [-Wtype-limits]
+#pragma GCC diagnostic ignored "-Wtype-limits"
+// ===== (nat) Code changes end
+
 // DOCUMENTATION
 //
 // Limitations:
@@ -7329,6 +7335,10 @@ STBIDEF int stbi_is_16_bit_from_callbacks(stbi_io_callbacks const *c, void *user
    stbi__start_callbacks(&s, (stbi_io_callbacks *) c, user);
    return stbi__is_16_main(&s);
 }
+
+// ===== (nat) Muting some warnings 
+#pragma GCC diagnostic pop
+// ===== (nat) Code changes end
 
 #endif // STB_IMAGE_IMPLEMENTATION
 

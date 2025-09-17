@@ -29,7 +29,7 @@ Heightmap::Heightmap(const std::string &path) :
     for (int i = 0; i < n; i++) {
         m_Data[i] = data[i] * m;
     }
-    free(data);
+    stbi_image_free(data);
 }
 
 Heightmap::Heightmap(

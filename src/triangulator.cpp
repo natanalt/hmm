@@ -237,16 +237,16 @@ void Triangulator::Legalize(const int a) {
     // (p1 is inside the circumcircle of [p0, pl, pr]), flip them,
     // then do the same check/flip recursively for the new pair of triangles
     //
-    //           pl                    pl
-    //          /||\                  /  \
-    //       al/ || \bl            al/    \a
-    //        /  ||  \              /      \
-    //       /  a||b  \    flip    /___ar___\
-    //     p0\   ||   /p1   =>   p0\---bl---/p1
-    //        \  ||  /              \      /
-    //       ar\ || /br             b\    /br
-    //          \||/                  \  /
-    //           pr                    pr
+    //           pl                    pl           //
+    //          /||\                  /  \          //
+    //       al/ || \bl            al/    \a        //
+    //        /  ||  \              /      \        //
+    //       /  a||b  \    flip    /___ar___\       //
+    //     p0\   ||   /p1   =>   p0\---bl---/p1     //
+    //        \  ||  /              \      /        //
+    //       ar\ || /br             b\    /br       //
+    //          \||/                  \  /          //
+    //           pr                    pr           //
 
     const auto inCircle = [](
         const glm::ivec2 a, const glm::ivec2 b, const glm::ivec2 c,

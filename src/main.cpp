@@ -7,7 +7,9 @@
 #include "cmdline.h"
 #include "heightmap.h"
 #include "stl.h"
+#include "obj.h"
 #include "triangulator.h"
+#include "utils.h"
 
 int main(int argc, char **argv) {
     const auto startTime = std::chrono::steady_clock::now();
@@ -17,8 +19,9 @@ int main(int argc, char **argv) {
 
     // long name, short name (or '\0'), description, mandatory (vs optional),
     // default value, constraint
+    p.add<float>("xsize", 'x', "requested size of the mesh in the X axis", true);
+    p.add<float>("ysize", 'y', "requested size of the mesh in the Y axis", true);
     p.add<float>("zscale", 'z', "z scale relative to x & y", true);
-    p.add<float>("zexagg", 'x', "z exaggeration", false, 1);
     p.add<float>("error", 'e', "maximum triangulation error", false, 0.001);
     p.add<int>("triangles", 't', "maximum number of triangles", false, 0);
     p.add<int>("points", 'p', "maximum number of vertices", false, 0);
@@ -34,7 +37,7 @@ int main(int argc, char **argv) {
     p.add<float>("shade-alt", '\0', "hillshade light altitude", false, 45);
     p.add<float>("shade-az", '\0', "hillshade light azimuth", false, 0);
     p.add("quiet", 'q', "suppress console output");
-    p.footer("infile outfile.stl");
+    p.footer("infile outfile.[stl/obj]");
     p.parse_check(argc, argv);
 
     // infile required
@@ -45,8 +48,9 @@ int main(int argc, char **argv) {
 
     // extract command line arguments
     const std::string inFile = p.rest()[0];
+    const float xSize = p.get<float>("xsize");
+    const float ySize = p.get<float>("ysize");
     const float zScale = p.get<float>("zscale");
-    const float zExaggeration = p.get<float>("zexagg");
     const float maxError = p.get<float>("error");
     const int maxTriangles = p.get<int>("triangles");
     const int maxPoints = p.get<int>("points");
@@ -142,14 +146,14 @@ int main(int argc, char **argv) {
         done = timed("triangulating");
         Triangulator tri(hm);
         tri.Run(maxError, maxTriangles, maxPoints);
-        auto points = tri.Points(zScale * zExaggeration);
+        auto points = tri.Points(zScale);
         auto triangles = tri.Triangles();
         done();
 
         // add base
         if (baseHeight > 0) {
             done = timed("adding solid base");
-            const float z = -baseHeight * zScale * zExaggeration;
+            const float z = -baseHeight * zScale;
             AddBase(points, triangles, w, h, z);
             done();
         }
@@ -163,24 +167,58 @@ int main(int argc, char **argv) {
             printf("  vs. naive = %g%%\n", 100.f * triangles.size() / naiveTriangleCount);
         }
 
-        // write output file
-        done = timed("writing output");
-        const std::string outFile = p.rest()[1];
-        SaveBinarySTL(outFile, points, triangles);
+        // HACK(nat): The upstream triangulation algorithm makes the mesh size match 1 heightmap pixel to 1 unit.
+        //            In order to allow variable mesh size via --xsize and --ysize parameters, I decided to just adjust
+        //            all vertex positions as a post-processing pass for the vertex data.
+        done = timed("postprocess rescaling pass");
+        const auto posScaleFactor = glm::vec3(xSize / float(w), ySize / float(h), 1.0);
+        for (glm::vec3& vertexPos : points) {
+            vertexPos *= posScaleFactor;
+        }
         done();
+
+        // Generating UVs. The vertex XY coordinates should cleanly map to UVs once normalized due to the heightmap
+        // nature of the mesh :3
+        done = timed("generating UVs");
+        std::vector<glm::vec2> uvs(points.size(), glm::vec2(0.0f));
+        const auto uvScaleFactor = glm::vec2(1.0f / xSize, 1.0f / ySize);
+        for (int i = 0; i < uvs.size(); i++) {
+            const glm::vec3 vertexPos = points[i];
+            uvs[i] = glm::vec2(vertexPos.x, vertexPos.y) * uvScaleFactor;
+        }
+        done();
+
+        // write output file
+        const std::string outFile = p.rest()[1];
+        
+        if (StrEndsWith(outFile.c_str(), ".stl", false)) {
+            done = timed("writing .stl output");
+            SaveBinarySTL(outFile, points, triangles);
+            done();
+        } else if (StrEndsWith(outFile.c_str(), ".obj", false)) {
+            done = timed("writing .obj output");
+            SaveWavefrontOBJ(outFile, points, triangles, uvs);
+            done();
+        } else {
+            fprintf(stderr, "Error: Could not deduce target file format from the output file extension.\n\n");
+            fprintf(stderr, "The extension (case-insensitive) should be either:\n");
+            fprintf(stderr, "   - .stl for STL files\n");
+            fprintf(stderr, "   - .obj for Wavefront .obj files\n");
+            return 1;
+        }
     }
 
     // compute normal map
     if (!normalmapPath.empty()) {
         done = timed("computing normal map");
-        hm->SaveNormalmap(normalmapPath, zScale * zExaggeration);
+        hm->SaveNormalmap(normalmapPath, zScale);
         done();
     }
 
     // compute hillshade image
     if (!shadePath.empty()) {
         done = timed("computing hillshade image");
-        hm->SaveHillshade(shadePath, zScale * zExaggeration, shadeAlt, shadeAz);
+        hm->SaveHillshade(shadePath, zScale, shadeAlt, shadeAz);
         done();
     }
 

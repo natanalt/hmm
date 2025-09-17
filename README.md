@@ -74,7 +74,7 @@ options:
 `hmm` supports a variety of file formats like PNG, JPG, etc. for the input
 heightmap. The output can be either STL or Wavefront .obj depending on file
 extension. Parameters `-x`, `-y` and `-z` are required to specify the generated
-mesh size. Note, that the vertical axis is mapped to +Y.
+mesh size. Note, that the vertical axis is mapped to +Z.
 
 ```bash
 $ hmm input.png output.stl -x 128 -y 128 -z 64
